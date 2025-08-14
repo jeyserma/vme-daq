@@ -33,9 +33,7 @@ Run the DAQ installation script:
 
 ## Running the DAQ
 
-1. Navigate to the run directory:
-
-        cd run
+1. Navigate to the run directory `cd run`
 
 2. Edit the DAQ configuration:
    Open `daq.ini` and set:
@@ -43,14 +41,11 @@ Run the DAQ installation script:
    - TDC addresses
    - Number of triggers
 
-3. Enable run mode:
-   Ensure the file `runfile` contains:
-
-        RUN
+3. Enable run mode: ensure the file `runfile` contains `RUN`
 
 4. Start the DAQ:
 
-        ../daq/bin daq.ini N
+        ../daq/bin/daq daq.ini N
 
    where N = run number (increment manually for each new run).
 
