@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--id", type=int, default="-1", help="Run ID")
 args = parser.parse_args()
 
-outputDir = "/var/www/html/webdcs"
+outputDir = "output" # /var/www/html/webdcs
 xMin, xMax = 0, 4000
 binWidth = 100 # in ns
 nBins = int((xMax-xMin)/binWidth)
@@ -31,25 +31,29 @@ if __name__ == "__main__":
 
     scanid = args.id
 
-    fIn = ROOT.TFile(f"output_run_{scanid}.root")
-    tree = fIn.Get("RAWData")
+    fIn = ROOT.TFile(f"output_run_{scanid}.root") # open file
+    tree = fIn.Get("RAWData") # get the tree
     tree.Print()
-    for iev in range(tree.GetEntries()):
-        tree.GetEntry(iev)
-        number_of_hits = tree.number_of_hits
+    for iev in range(tree.GetEntries()): # loop over all events(triggers) in the tree
+        tree.GetEntry(iev) # get the event
+        number_of_hits = tree.number_of_hits # number of hits
 
         print(f"Processing event {iev}, number of hits {number_of_hits}")
 
-        TDC_channel = tree.TDC_channel
-        TDC_TimeStamp = tree.TDC_TimeStamp
+        TDC_channel = tree.TDC_channel # vector of TDC channels fired
+        # the address of the TDC is 33330000
+        # therefore, hits are stored from channel 3000 to 3127 (in total 128 available channels)
+        TDC_TimeStamp = tree.TDC_TimeStamp # timestamps of these channels fired (units in ns)
 
         for i in TDC_TimeStamp:
-            hist_all.Fill(i)
+            hist_all.Fill(i) # fill all timestams
 
         nhits = len(TDC_TimeStamp)
         hist_mp.Fill(nhits)
         if nhits <= 1:
             continue
+
+        # compute all hits time minus first hit (= trigger hit)
         firstHit = min(TDC_TimeStamp)
         hits_dt = [i-firstHit for i in TDC_TimeStamp]
         del(hits_dt[0])
