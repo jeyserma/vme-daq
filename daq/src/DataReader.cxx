@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <ctime>
 #include <unistd.h>
+#include <chrono>
 
 #include "TH1I.h"
 #include "TH1D.h"
@@ -29,6 +30,7 @@ DataReader::DataReader(){
     TDCData.QFlagList = new vector<int>;
     TDCData.ChannelList = new vector< vector<int> >;
     TDCData.TimeStampList = new vector< vector<float> >;
+    TDCData.TriggerTimeStampList = new vector<int64_t>;
 
     //Cleaning all the vectors
     TDCData.EventList->clear();
@@ -36,6 +38,7 @@ DataReader::DataReader(){
     TDCData.QFlagList->clear();
     TDCData.ChannelList->clear();
     TDCData.TimeStampList->clear();
+    TDCData.TriggerTimeStampList->clear();
 
     StopFlag = false;
 }
@@ -172,21 +175,23 @@ void DataReader::Run(){
     //hits.
     TTree *RAWDataTree = new TTree("RAWData","RAWData");
 
-    int           EventCount = -9;  //Event tag
-    int           nHits = -8;       //Number of fired TDC channels in event
-    int           qflag = -7;       //Event quality flag (0 = CORRUPTED | 1 = GOOD)
-    vector<int>   TDCCh;            //List of fired TDC channels in event
-    vector<float> TDCTS;            //list of fired TDC channels time stamps
+    int           EventCount = -9;          //Event tag
+    int           nHits = -8;               //Number of fired TDC channels in event
+    int           qflag = -7;               //Event quality flag (0 = CORRUPTED | 1 = GOOD)
+    int64_t       trigger_timestamp = -1;   //Trigger timestamp (in ms since UNIX EPOCH)
+    vector<int>   TDCCh;                    //List of fired TDC channels in event
+    vector<float> TDCTS;                    //list of fired TDC channels time stamps
 
     TDCCh.clear();
     TDCTS.clear();
 
     //Set the branches that will contain the previously defined variables
-    RAWDataTree->Branch("EventNumber",    &EventCount, "EventNumber/I");
-    RAWDataTree->Branch("number_of_hits", &nHits,      "number_of_hits/I");
-    RAWDataTree->Branch("Quality_flag",   &qflag,      "Quality_flag/I");
-    RAWDataTree->Branch("TDC_channel",    &TDCCh);
-    RAWDataTree->Branch("TDC_TimeStamp",  &TDCTS);
+    RAWDataTree->Branch("EventNumber",          &EventCount, "EventNumber/I");
+    RAWDataTree->Branch("number_of_hits",       &nHits,      "number_of_hits/I");
+    RAWDataTree->Branch("Quality_flag",         &qflag,      "Quality_flag/I");
+    RAWDataTree->Branch("TDC_channel",          &TDCCh);
+    RAWDataTree->Branch("TDC_TimeStamp",        &TDCTS);
+    RAWDataTree->Branch("trigger_timestamp",    &trigger_timestamp, "trigger_timestamp/L");
 
     //Cleaning all the vectors that will contain the data
     TDCData.EventList->clear();
@@ -194,6 +199,7 @@ void DataReader::Run(){
     TDCData.QFlagList->clear();
     TDCData.ChannelList->clear();
     TDCData.TimeStampList->clear();
+    TDCData.TriggerTimeStampList->clear();
 
     //Clear all the buffers that can have started to be filled
     //by incoming triggers and start data taking. If non efficiency
@@ -225,8 +231,14 @@ void DataReader::Run(){
             VME->SendBUSY(ON);
             usleep(1000);
 
+            // get the trigger time in ms
+            auto now = std::chrono::system_clock::now();
+            auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+            TDCData.TriggerTimeStampList->push_back(ms);
+
             //Read the data
             TriggerCount = TDCs->Read(&TDCData,nTDCs);
+            //std::cout << ms << " TriggerCount=" << TriggerCount << " TriggerTimeStampListSize=" << TDCData.TriggerTimeStampList->size() << " TDCData.EventList.size=" << TDCData.EventList->size() << std::endl;
 
             MSG_INFO("[DAQ] Triggers collected: "+std::to_string(TriggerCount));
 
@@ -256,7 +268,7 @@ void DataReader::Run(){
         qflag       = GetQFlag(i);
         TDCCh       = TDCData.ChannelList->at(i);
         TDCTS       = TDCData.TimeStampList->at(i);
-
+        trigger_timestamp = TDCData.TriggerTimeStampList->at(i);
         RAWDataTree->Fill();
     }
 

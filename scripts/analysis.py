@@ -13,17 +13,19 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--id", type=int, default="-1", help="Run ID")
 args = parser.parse_args()
 
+outputDir = "/var/www/html/webdcs"
+xMin, xMax = 0, 4000
+binWidth = 100 # in ns
+nBins = int((xMax-xMin)/binWidth)
 
-xMin, xMax = 0, 1000
+hist_all = ROOT.TH1D("all", "All hits;Hit time (ns);Events / 100 ns", 100, 0, 10000)
+hist_mp = ROOT.TH1D("mp", "Hit multiplicity;Number of hits;Events", 10, 0, 10)
+hist_dt12 = ROOT.TH1D("hist_dt12", f"Time difference (MP>=2);#DeltaT(hit2, hit1);Events / {binWidth} ns", nBins, xMin, xMax)
+hist_dt_2 = ROOT.TH1D("hist_dt_2", f"Time difference (MP==2);#DeltaT(hit2, hit1);Events / {binWidth} ns", nBins, xMin, xMax)
+hist_dt_3 = ROOT.TH1D("hist_dt_3", f"Time difference (MP==3);#DeltaT(hit3, hit1);Events / {binWidth} ns", nBins, xMin, xMax)
+hist_dt_4 = ROOT.TH1D("hist_dt_4", f"Time difference (MP==4);#DeltaT(hit4, hit1);Events / {binWidth} ns", nBins, xMin, xMax)
 
-hist_all = ROOT.TH1D("all", "All hits", 1000, 0, 10000)
-hist_mp = ROOT.TH1D("mp", "Hit multiplicity", 5, 0, 5)
-hist_dt12 = ROOT.TH1D("hist_dt12", "#DeltaT(hit2,hit1)", xMax-xMin, xMin, xMax)
-hist_dt_2 = ROOT.TH1D("hist_dt_2", "#DeltaT 2 hits", xMax-xMin, xMin, xMax)
-hist_dt_3 = ROOT.TH1D("hist_dt_3", "#DeltaT 3 hits", xMax-xMin, xMin, xMax)
-hist_dt_4 = ROOT.TH1D("hist_dt_4", "#DeltaT 4 hits", xMax-xMin, xMin, xMax)
-
-hist_all.SetLineColor(ROOT.kRed)
+#hist_all.SetLineColor(ROOT.kRed)
 
 if __name__ == "__main__":
 
@@ -72,35 +74,29 @@ if __name__ == "__main__":
 
 
     c = ROOT.TCanvas("c", "c", 1000, 750)
-    hist_dt_2.GetXaxis().SetTitle("#DeltaT (ns)")
     hist_dt_2.Draw()
-    c.SaveAs(f"output/hist_dt_2_runid{scanid}.png")
+    c.SaveAs(f"{outputDir}/hist_dt_2_runid{scanid}.png")
     c.Clear()
 
-    hist_dt_3.GetXaxis().SetTitle("#DeltaT (ns)")
     hist_dt_3.Draw()
-    c.SaveAs(f"output/hist_dt_3_runid{scanid}.png")
+    c.SaveAs(f"{outputDir}/hist_dt_3_runid{scanid}.png")
     c.Clear()
 
 
-    hist_dt_4.GetXaxis().SetTitle("#DeltaT (ns)")
     hist_dt_4.Draw()
-    c.SaveAs(f"output/hist_dt_4_runid{scanid}.png")
+    c.SaveAs(f"{outputDir}/hist_dt_4_runid{scanid}.png")
     c.Clear()
 
-    hist_all.GetXaxis().SetTitle("Hit timestamp (ns)")
     hist_all.Draw()
-    c.SaveAs(f"output/hist_all_runid{scanid}.png")
+    c.SaveAs(f"{outputDir}/hist_all_runid{scanid}.png")
     c.Clear()
 
-    hist_dt12.GetXaxis().SetTitle("#DeltaT (ns)")
     hist_dt12.Draw()
-    c.SaveAs(f"output/hist_dt12_runid{scanid}.png")
+    c.SaveAs(f"{outputDir}/hist_dt12_runid{scanid}.png")
     c.Clear()
 
-    hist_mp.GetXaxis().SetTitle("Hit multiplicity")
     hist_mp.Draw()
-    c.SaveAs(f"output/hist_mp_runid{scanid}.png")
+    c.SaveAs(f"{outputDir}/hist_mp_runid{scanid}.png")
     c.Clear()
 
 

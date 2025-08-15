@@ -239,6 +239,7 @@ struct RAWData{
     vector<int>            *QFlagList;
     vector<vector<int> >   *ChannelList;
     vector<vector<float> > *TimeStampList;
+    vector<int64_t>        *TriggerTimeStampList;
 };
 
 /*** CLASS ***/
