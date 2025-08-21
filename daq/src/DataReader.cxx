@@ -164,6 +164,7 @@ void DataReader::WriteRunRegistry(string filename){
 void DataReader::Run(){
     //Get the output file name and create the ROOT file
     Uint TriggerCount = 0;
+    Uint LastEventCount = 0;
     string outputFileName = GetFileName();
     long long startstamp = GetTimeStamp();
 
@@ -230,17 +231,23 @@ void DataReader::Run(){
             //the signal is of the order of 1ms)
             VME->SendBUSY(ON);
             usleep(1000);
-
-            // get the trigger time in ms
-            auto now = std::chrono::system_clock::now();
-            auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-            TDCData.TriggerTimeStampList->push_back(ms);
+            
 
             //Read the data
             TriggerCount = TDCs->Read(&TDCData,nTDCs);
             //std::cout << ms << " TriggerCount=" << TriggerCount << " TriggerTimeStampListSize=" << TDCData.TriggerTimeStampList->size() << " TDCData.EventList.size=" << TDCData.EventList->size() << std::endl;
 
             MSG_INFO("[DAQ] Triggers collected: "+std::to_string(TriggerCount));
+
+            // get the trigger time in ms
+            auto now = std::chrono::system_clock::now();
+            auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+            
+            for(int k=0; k<(TriggerCount-LastEventCount); k++) {
+                TDCData.TriggerTimeStampList->push_back(ms);
+            }
+
+            LastEventCount = TriggerCount; // update lastEventCount
 
             //Resume data taking - Release VETO signal
             VME->SendBUSY(OFF);
