@@ -19,7 +19,7 @@ binWidth = 100 # in ns
 nBins = int((xMax-xMin)/binWidth)
 
 hist_all = ROOT.TH1D("all", "All hits;Hit time (ns);Events / 100 ns", 100, 0, 10000)
-hist_mp = ROOT.TH1D("mp", "Hit multiplicity;Number of hits;Events", 10, 0, 10)
+hist_mp = ROOT.TH1D("mp", "Hit multiplicity;Number of hits;Events", 20, 0, 20)
 hist_dt12 = ROOT.TH1D("hist_dt12", f"Time difference (MP>=2);#DeltaT(hit2, hit1);Events / {binWidth} ns", nBins, xMin, xMax)
 hist_dt_2 = ROOT.TH1D("hist_dt_2", f"Time difference (MP==2);#DeltaT(hit2, hit1);Events / {binWidth} ns", nBins, xMin, xMax)
 hist_dt_3 = ROOT.TH1D("hist_dt_3", f"Time difference (MP==3);#DeltaT(hit3, hit1);Events / {binWidth} ns", nBins, xMin, xMax)
@@ -27,9 +27,23 @@ hist_dt_4 = ROOT.TH1D("hist_dt_4", f"Time difference (MP==4);#DeltaT(hit4, hit1)
 
 #hist_all.SetLineColor(ROOT.kRed)
 
+def get_timestamps(ch_targets, channels, timestamps):
+    ret = []
+    for i,ch in enumerate(channels):
+        if ch in ch_targets:
+            ret.append(timestamps[i])
+    return ret
+
+
+
 if __name__ == "__main__":
 
     scanid = args.id
+    outputDir = f"/home/submit/jaeyserm/public_html/vme_daq/run{scanid}/" # /var/www/html/webdcs
+
+    channels_select = [3016]
+    triggers_select = [3018]
+    veto_channels = list(range(3020,3040))
 
     fIn = ROOT.TFile(f"output_run_{scanid}.root") # open file
     tree = fIn.Get("RAWData") # get the tree
@@ -45,34 +59,63 @@ if __name__ == "__main__":
         # therefore, hits are stored from channel 3000 to 3127 (in total 128 available channels)
         TDC_TimeStamp = tree.TDC_TimeStamp # timestamps of these channels fired (units in ns)
 
-        for i in TDC_TimeStamp:
-            hist_all.Fill(i) # fill all timestams
 
-        nhits = len(TDC_TimeStamp)
+        # trigger requirement
+        timstamp_sel_trg = get_timestamps(triggers_select, TDC_channel, TDC_TimeStamp)
+        #timstamp_sel_trg = [t for t in timstamp_sel_trg if t > 1500]
+        if len(timstamp_sel_trg) == 0:
+            print("ERROR NO TRIGGERS")
+            continue
+
+        ## Veto selected channels
+        veto = False
+        for veto_ch in veto_channels:
+            if veto_ch in TDC_channel:
+                veto = True
+                break
+
+        if veto:
+            print("Veto on selected channel")
+            continue
+
+
+
+        timstamp_sel = get_timestamps(channels_select, TDC_channel, TDC_TimeStamp)
+        timstamp_sel_veto = [t for t in timstamp_sel if t < 1500]
+        if len(timstamp_sel_veto) > 0:
+            print("Veto extra trigger below 1500 ns")
+            continue
+
+        for i in timstamp_sel:
+            hist_all.Fill(i) # fill all timestamps
+
+        nhits = len(timstamp_sel)
         hist_mp.Fill(nhits)
         if nhits <= 1:
             continue
 
+
         # compute all hits time minus first hit (= trigger hit)
-        firstHit = min(TDC_TimeStamp)
-        hits_dt = [i-firstHit for i in TDC_TimeStamp]
+        firstHit = min(timstamp_sel)
+        hits_dt = [i-firstHit for i in timstamp_sel]
         del(hits_dt[0])
         if nhits == 2:
             for i in hits_dt:
                 hist_dt_2.Fill(i)
-                print(i)
+                #print(i)
 
         if nhits == 3:
             for i in hits_dt:
                 hist_dt_3.Fill(i)
-                print(i)
+                #print(i)
         if nhits == 4:
             for i in hits_dt:
                 hist_dt_4.Fill(i)
-                print(i)
+                #print(i)
 
         if nhits > 1:
             hist_dt12.Fill(hits_dt[0])
+            print(hits_dt[0])
 
     fIn.Close()
 
@@ -102,6 +145,5 @@ if __name__ == "__main__":
     hist_mp.Draw()
     c.SaveAs(f"{outputDir}/hist_mp_runid{scanid}.png")
     c.Clear()
-
 
 
